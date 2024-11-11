@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:latest
+    container_name: postgres-container
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - my-network
+
+  migrations:
+    build: .
+    container_name: migrations-container
+    environment:
+      DB_HOST: db
+    env_file:
+      - .env
+    depends_on:
+      - db
+    entrypoint: [ "sh", "-c", "npm run start:migration" ]
+    networks:
+      - my-network
+
+  app:
+    build: .
+    container_name: typescript-app
+    environment:
+      DB_HOST: db
+    env_file:
+      - .env
+    ports:
+      - "${PORT}:${PORT}"
+    depends_on:
+      - migrations
+    networks:
+      - my-network
+
+volumes:
+  postgres_data:
+
+
+networks:
+  my-network:
+    driver: bridge
